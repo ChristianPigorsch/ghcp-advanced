@@ -1,7 +1,7 @@
 ---
 published: true
 type: workshop
-title: GitHub Copilot Advanced — Spec-Driven Development
+title: GitHub Copilot Advanced: Spec-Driven Development and beyond
 short_title: GHCP Advanced — SDD
 description: Learn the fundamentals of GitHub Copilot and then go deep on Spec-Driven Development (SDD), the discipline of letting specifications drive your AI-assisted code.
 level: intermediate
@@ -15,20 +15,20 @@ navigation_levels: 3
 navigation_numbering: true
 ---
 
-# GitHub Copilot Advanced — Spec-Driven Development
+# GitHub Copilot Advanced: Spec-Driven Development and beyond
 
-*Version 1.0 — June 2026*
+*Version 0.5 — June 2026*
 
 Welcome! This workshop has two parts:
 
-1. **Getting Started with GitHub Copilot** — a single broad chapter for anyone who has never (or barely) used Copilot. It covers completions, Chat, Agent mode, the Copilot CLI, custom instructions, prompt files, chatmodes and MCP servers.
-2. **Spec-Driven Development (SDD)** — the main focus. You will learn how to make specifications, not vibes, drive what Copilot builds for you, and you will do it end-to-end on a small TypeScript/Node feature.
+1. **Getting Started with GitHub Copilot**: a single broad chapter for anyone who has never (or barely) used GitHub Copilot. It covers inline completions, Chat, Agent mode, the Copilot CLI, custom instructions, prompt files, tools and MCP servers.
+2. **Spec-Driven Development (SDD)**: the main part. You will learn how to make specifications, drive what GitHub Copilot builds for you, and you will do it end-to-end on a small TypeScript/Node feature.
 
-A third optional chapter introduces the [Spec Kit](https://github.com/github/spec-kit) tool for teams that are allowed to install it.
+The third (optional) chapter introduces [Spec Kit](https://github.com/github/spec-kit) as a tool to use spec driven development conveniently with most agentic coding tools.
 
 <div class="info" data-title="Who is this for?">
 
-> Developers, tech leads and architects who want to use GitHub Copilot **deliberately** instead of reactively. No prior Copilot experience is required — Chapter 1 catches you up fast.
+> Developers, tech leads and architects who want bring their GitHub Copilot usage under control also for more complex scenarios. No prior Copilot experience is required, but recommended. Chapter 1 is designed to help you catch up fast.
 
 </div>
 
@@ -57,12 +57,12 @@ You need the following before starting:
 
 ### Getting Copilot access
 
-- **Individual free / Pro:** sign up at [github.com/github-copilot/signup](https://github.com/github-copilot/signup).
+- **Individual Free/Pro:** sign up at [github.com/github-copilot/signup](https://github.com/github-copilot/signup).
 - **Through your organization:** request access at [github.com/settings/copilot](https://github.com/settings/copilot).
 
 <div class="info" data-title="Enterprise note">
 
-> Some features in this workshop (Agent mode, MCP, the Spec Kit CLI) may be restricted by your organization's policy. The workshop is structured so that each section is **independently useful**; skip what you cannot use.
+> Some features in this workshop (Agent mode, MCP, the GitHub Copilot CLI, spec-kit) may be restricted by your organization's policy. The workshop is structured so that each section is **independently useful**; skip what you cannot use.
 
 </div>
 
@@ -70,15 +70,17 @@ You need the following before starting:
 
 # Chapter 1 — Getting Started with GitHub Copilot
 
-> If you have never (or only barely) used GitHub Copilot, **start here**. This chapter is intentionally broad and merges what older tutorials call "Level 1 to 3". Skim it if you are already comfortable.
+> If you have never (or only barely) used GitHub Copilot, **start here**. This chapter is intentionally broad. Skip (parts of) it if you are already familiar and comfortable.
 
 ## 1.1 Copilot in VS Code
 
 Open any folder in VS Code with the Copilot extensions installed. You will use four surfaces:
 
-### Inline completions (ghost text)
+### Inline completions
 
-Start typing and Copilot suggests grey "ghost text". Accept with `Tab`, dismiss with `Esc`, cycle alternatives with `Alt+]` / `Alt+[`.
+Start typing and Copilot suggests grey inline completions. Accept with `Tab`, dismiss with `Esc`, cycle alternatives with `Alt + ]` / `Alt + [`. On Mac `Option + ]` / `Option + [`. 
+
+> Tip: Check your configured shortcuts under `Ctrl + Shift + P` or `Cmd + Shift + P` -> `Open Keyboard Shortcuts`.
 
 **Try it.** Create `hello.ts` and type:
 
@@ -87,15 +89,15 @@ Start typing and Copilot suggests grey "ghost text". Accept with `Tab`, dismiss 
 function fib(n: number): number {
 ```
 
-Let Copilot complete the body. Now add a second comment `// returns the nth prime` above a new function and watch how *prior context in the file* steers the suggestion.
+Let Copilot complete the body. Now add a second comment `// returns the nth prime` above a new function and watch how *prior context in the file* guiding the suggestion.
 
-### Inline chat (`Cmd/Ctrl+I`)
+### Inline chat (`Cmd/Ctrl + I`)
 
-Select code, press `Cmd/Ctrl+I`, and ask for a transformation: *"add input validation and JSDoc"*, *"convert to async/await"*, *"write a unit test for this"*.
+Select code, press `Cmd/Ctrl + I`, and ask for a transformation: *"add input validation and JSDoc"*, *"convert to async/await"*, *"write a unit test for this"*.
 
 ### Chat view (`Cmd/Ctrl+Alt+I`)
 
-The Chat side panel is for conversation about your code. Use `#` to attach context (files, symbols, selection) and `/` for built-in commands (`/explain`, `/fix`, `/tests`, `/new`).
+The Chat side panel in "Ask" mode is for conversation about your code. Use `#` to attach context (files, symbols, selection) and `/` for built-in commands (`/explain`, `/fix`, `/tests`, `/new`).
 
 ```text
 #file:src/auth.ts /explain why does login() throw on empty passwords?
@@ -103,45 +105,52 @@ The Chat side panel is for conversation about your code. Use `#` to attach conte
 
 ### Agent mode
 
-In the Chat view, switch the mode picker from **Ask** to **Agent**. Agent mode can read, create and edit files across your workspace, run terminal commands (with your approval) and iterate until a task is done. This is the surface you will lean on most in Chapter 2.
+In the Chat view, switch the mode picker from **Ask** to **Agent**. Agent mode can read, create and edit files across your workspace, run commands (with your approval) and iterate until a task is done. This is the surface you will lean on most in Chapter 2.
 
 <div class="tip" data-title="Pick the right mode">
 
-> - **Ask** — questions, explanations, no file changes
-> - **Edit** — focused multi-file edits you fully control
-> - **Agent** — autonomous task execution; best for spec-driven work
+> - **Ask** — questions, explanations, information gathering
+> - **Agent** — autonomous task execution, coding, execution
 
 </div>
 
-## 1.2 The Copilot CLI
+## 1.2 GitHub Copilot CLI
+![GHCP CLI](cli.png)
 
-Copilot is not just an IDE feature. Install the CLI extension for `gh`:
+GitHub Copilot is also IDE independent available via the CLI. It gives you an agent setup in your terminal.
+
+Homebrew:
+
+```bash
+brew install copilot-cli
+```
+
+WinGet:
+
+```bash
+winget install GitHub.Copilot
+```
+
+npm:
+
+```bash
+npm install -g @github/copilot
+```
+
+
+Install the CLI extension for `gh`:
 
 ```bash
 gh extension install github/gh-copilot
 ```
 
-Now you can:
+**Try it.** Open a terminal, navigate to any folder or repo, run `copilot --banner` and ask "what is this repository about?"
 
-```bash
-# Ask: what does this shell command do?
-gh copilot explain "tar -xzvf archive.tar.gz -C ./out"
+Especially when you run command line tools, always review the execution before accepting it. **Never blindly execute** suggested shell commands (in general).
 
-# Suggest: how do I do X?
-gh copilot suggest "find all files larger than 100MB modified in the last week"
-```
+--- read until here
 
-There is also a standalone **Copilot CLI** (`copilot`) that gives you an agent in your terminal — the same kind of agent you are talking to right now. Install per the [docs](https://docs.github.com/en/copilot/github-copilot-in-the-cli). It is excellent for spec-driven work outside an IDE (CI scripts, infra repos, anywhere you live in the shell).
-
-**Try it.**
-
-```bash
-gh copilot suggest "create a new git branch named feat/login and push it"
-```
-
-Read the explanation before running anything. **Never blindly execute** suggested shell commands.
-
-## 1.3 Custom instructions
+## 1.3 Custom instructions/AGENTS.md
 
 Copilot reads project-level instructions from `.github/copilot-instructions.md`. Put your *durable* rules there — language, framework, style, testing expectations, things you would otherwise repeat in every prompt.
 
@@ -236,158 +245,136 @@ You now have the full toolbox. The rest of the workshop is about **using it well
 
 ---
 
-# Chapter 2 — Spec-Driven Development (the main course)
+# Chapter 2 — Spec-Driven Development 
 
 ## 2.1 Why spec-driven?
 
-Most people use Copilot like this:
+A lot of people use agentic coding tools like this:
 
 > *"build me a REST API for managing tasks"*
 
-…and then spend the next hour wrestling with what the model assumed. This is **vibe coding**: you ship intent, the model ships interpretation, and the gap between them becomes bugs.
+…and then spend the next hour wrestling with what the agent assumed. This is **vibe coding**: you ship intent, the agent ships interpretation, and the gap between them becomes technical debt and security risks.
 
-**Spec-Driven Development (SDD)** flips that order:
+**Spec-Driven Development (SDD)** tightly structures the agentic workflow:
 
-```
-Idea  →  Spec  →  Plan  →  Tasks  →  Code  →  Verify
-        ─────────  the model helps with each step, but YOU own the spec  ─────────
-```
+Spec  →  Plan  →  Task  →  Implement
 
-The spec is a short, reviewable artifact that pins down **what** must be true when the feature is done. The plan and tasks are *derived* from it. The code is *implemented against* it. Tests *verify* it.
+The spec describes the **what** in the form of user stories. The plan describes the technical **how**. The tasks are a todo list based on the spec and the plan. In the implementation, the task list is executed. 
 
 You gain three things:
 
-1. **Reviewability.** A 1-page spec is something a human (or a second AI) can review. 800 lines of generated code is not.
-2. **Reusability.** Specs survive rewrites. Code does not.
-3. **Determinism.** Two runs from the same spec converge. Two runs from the same vibe diverge.
+1. **Reviewability.** A precise spec & plan is something a human (or a second AI agent) can review. 800 lines of generated code distributed between multiple files is not.
+2. **Control.** The 3-steps of planning create a "contract" between your intent and the agentic AI. 
+3. **A structured way of working & better outcomes.** With the help of divide and conquer, you can get to more complex, multi-file, multi-iteration features that are still managable and maintainable.
 
-<div class="tip" data-title="Rule of thumb">
+<div class="tip" data-title="Important">
 
-> If you cannot describe the feature in a one-page spec, you do not yet understand it well enough to delegate it to an agent.
+> If you struggle break down the task at hand into a reasonable sized spec, you probably need to break the task at hand into smaller pieces. SDD is not a silver bullet for complexity — it is a discipline that helps you manage it, but it does not replace good judgment in scope definition.
 
 </div>
 
-## 2.2 The SDD loop in detail
+## 2.2 Hands-on: build The Rubber Duck Emporium with SDD
 
-### Step 1 — Idea → Spec
+You will build a small e-commerce backend for **The Rubber Duck Emporium** — a shop that sells specialty rubber ducks for every possible occasion: Debugging Ducks, Philosopher Ducks, Maritime Ducks, Wellness Ducks, and Limited Editions.
 
-Open Agent mode. Paste your rough idea. Then say:
+The user stories live in the [`user-stories/`](https://github.com/jkordick/ghcp-advanced/tree/main/user-stories) folder of this repo. **Read [`user-stories/README.md`](https://github.com/jkordick/ghcp-advanced/blob/main/user-stories/README.md) first** — it describes the product, personas (Quincy Quacker the customer, Dr. Mallard the curator), shared constraints, and the dependency graph between stories.
 
-> Do not write code yet. Ask me clarifying questions one at a time until you can produce an unambiguous spec. When ready, write it to `specs/<slug>/spec.md` using this outline: Problem, Users, Scope (in/out), Functional requirements, Non-functional requirements, Acceptance criteria, Open questions.
+There are 8 stories. A realistic ~90-minute run completes the 4 MVP stories (browse, detail, cart, checkout). The other 4 are stretch / homework.
 
-This step is **slow on purpose**. Expect 5–15 questions. Answer them.
+<div class="tip" data-title="Why a silly domain?">
 
-### Step 2 — Spec → Plan
+> Ducks force you to actually read the spec. With a familiar domain (a "todo app", a "URL shortener") it is too easy to silently rely on what you already know. With ducks, every ambiguity surfaces — which is the whole point of practicing SDD.
 
-Once the spec is accepted, prompt:
+</div>
 
-> Based on `specs/<slug>/spec.md`, write `specs/<slug>/plan.md`: chosen approach, key components, data model, external dependencies, risks. No code.
-
-### Step 3 — Plan → Tasks
-
-> From the plan, generate `specs/<slug>/tasks.md` as a numbered checklist. Each task must be independently testable and small enough to complete in <15 min. Include acceptance criteria per task.
-
-### Step 4 — Tasks → Code
-
-Now — and only now — let the agent code. One task at a time:
-
-> Implement task #1 from `tasks.md`. Stop and run tests after each file change. Do not start task #2.
-
-### Step 5 — Verify
-
-For each task, the agent should produce or update tests that map back to acceptance criteria in the spec. Your review question is always: *"does this satisfy the spec?"* — not *"is this clever code?"*.
-
-## 2.3 Hands-on: build a "URL shortener" with SDD
-
-You will build a tiny TypeScript/Node CLI that shortens URLs and stores them locally. Total time: ~45 min.
-
-### 2.3.1 Scaffold
+### 2.2.1 Scaffold
 
 ```bash
-mkdir url-shrink && cd url-shrink
+mkdir duck-emporium && cd duck-emporium
 npm init -y
 npm i -D typescript tsx vitest @types/node
 npx tsc --init
-mkdir -p src specs/shrink
-git init && git add -A && git commit -m "scaffold"
+mkdir -p src specs
+# Pull the user stories from this repo into your project:
+curl -sL https://github.com/jkordick/ghcp-advanced/archive/refs/heads/main.tar.gz \
+  | tar -xz --strip-components=1 ghcp-advanced-main/user-stories
+git init && git add -A && git commit -m "scaffold + user stories"
 ```
 
 Add a minimal `.github/copilot-instructions.md`:
 
 ```markdown
-# Project: url-shrink
+# Project: duck-emporium
 - Language: TypeScript (ES modules), Node 20+.
 - Use `node:`-prefixed built-ins.
 - Tests live next to source as `*.test.ts`, run with `vitest`.
-- Never edit `specs/**` without explicit instruction.
+- User stories live in `user-stories/`. Specs go in `specs/<story-id>/`.
+- Never edit `user-stories/**` or `specs/**` without explicit instruction.
 - Follow the workflow in `.github/prompts/sdd-*.prompt.md`.
+- Payments are MOCKED. Never integrate a real payment provider.
 ```
 
-### 2.3.2 Add the SDD prompt files
+### 2.2.2 Add the SDD prompt files
 
 Create `.github/prompts/sdd-spec.prompt.md`:
 
 ```markdown
 ---
 mode: agent
-description: Drive the user from idea to spec.
+description: Turn a user story into a reviewable spec.
 ---
-Goal: produce `specs/{slug}/spec.md`.
+Goal: produce `specs/{story-id}/spec.md` from `user-stories/{story-id}.md`.
 
 Rules:
-- Ask clarifying questions ONE at a time.
-- Do not write code or non-spec files.
-- When confident, write the spec using the outline:
+- Read the user story file first. Treat it as raw input, not as a spec.
+- Ask clarifying questions ONE at a time. Use the "Open questions" section
+  of the user story as a starting point but go beyond it.
+- Do not write code or any file other than `specs/{story-id}/spec.md`.
+- When you have enough information, write the spec using this outline:
   Problem, Users, Scope (in/out), Functional requirements,
   Non-functional requirements, Acceptance criteria, Open questions.
 - Stop after writing the spec and wait for approval.
 ```
 
-Create `.github/prompts/sdd-plan.prompt.md`, `sdd-tasks.prompt.md`, `sdd-implement.prompt.md` following the same pattern (one step each, no shortcuts).
+Create `.github/prompts/sdd-plan.prompt.md`, `sdd-tasks.prompt.md` and `sdd-implement.prompt.md` following the same pattern — one step each, no shortcuts. Each prompt should read the previous artifact and produce exactly one new one.
 
-### 2.3.3 Run the loop
+### 2.2.3 Run the loop, story by story
 
-In Chat (Agent mode):
+Pick story 1 (`browse-catalog`). In Chat (Agent mode):
 
 ```text
-/sdd-spec
-I want a tiny CLI that takes a long URL and returns a short code, and can resolve a short code back to the URL. Local file storage is fine.
+/sdd-spec story: browse-catalog
 ```
 
-Answer the questions. Review `specs/shrink/spec.md`. Iterate until you are happy.
+Answer the clarifying questions. Expect to make a foundational decision here that will affect every later story — e.g., *"is this a JSON API or a server-rendered web app?"*, *"what fields does a `Duck` have?"*. Review `specs/browse-catalog/spec.md`. Iterate until you are happy.
 
 Then:
 
 ```text
-/sdd-plan
+/sdd-plan story: browse-catalog
+/sdd-tasks story: browse-catalog
+/sdd-implement story: browse-catalog task 1
+/sdd-implement story: browse-catalog task 2
 ```
 
-Then:
+…and so on. **Commit after every passing task.** When the story is done, move on to story 2 (`duck-detail`), which builds on story 1's foundation.
 
-```text
-/sdd-tasks
-```
+### 2.2.4 What you should notice
 
-Then, task by task:
-
-```text
-/sdd-implement task 1
-```
-
-```text
-/sdd-implement task 2
-```
-
-…and so on. **Commit after every passing task.** The git history becomes a living trace of the spec being satisfied step by step.
-
-### 2.3.4 What you should notice
-
+- During story 1's spec, you make decisions (Duck shape, storage, transport) that *prevent* whole categories of confusion in stories 2-8.
 - The agent stops asking *"what did you mean by…?"* mid-implementation — because you front-loaded that in the spec.
 - When a test fails, the fix is local to one task, not a sprawling rewrite.
-- If you change your mind, you edit the spec and re-run from Step 2. The plan, tasks and code regenerate cleanly.
+- If you change your mind, you edit the spec and re-run from `/sdd-plan`. The plan, tasks and code regenerate cleanly.
 - A teammate can review `spec.md` + `tasks.md` in 5 minutes and know exactly what shipped.
+- The user story files are *never* edited by the agent — they are the immutable source of truth for "what the customer asked for".
 
-## 2.4 SDD in the Copilot CLI
+<div class="tip" data-title="Do this now">
+
+> Even outside the workshop, try this on the next ticket in your real backlog: copy the ticket text into a `user-stories/` file, then run `/sdd-spec` against it. Time-box to 20 minutes. The clarity gain is the win — code is a bonus.
+
+</div>
+
+## 2.3 SDD in the Copilot CLI
 
 Everything above works in the terminal too. Same prompt files, same instructions — just invoked from `copilot` or driven by `gh copilot`. This is how you bring SDD to:
 
@@ -395,7 +382,7 @@ Everything above works in the terminal too. Same prompt files, same instructions
 - CI jobs that generate code from specs on every PR
 - pair sessions over SSH
 
-## 2.5 Anti-patterns to avoid
+## 2.4 Anti-patterns to avoid
 
 | Anti-pattern                                       | Fix                                                      |
 | -------------------------------------------------- | -------------------------------------------------------- |
