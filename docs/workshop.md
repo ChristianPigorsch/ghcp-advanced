@@ -115,7 +115,7 @@ In the Chat view, switch the mode picker from **Ask** to **Agent**. Agent mode c
 </div>
 
 ## 1.2 GitHub Copilot CLI
-![GHCP CLI](cli.png)
+![GHCP CLI](assets/cli.png)
 
 GitHub Copilot is also IDE independent available via the CLI. It gives you an agent setup in your terminal.
 
