@@ -148,23 +148,17 @@ gh extension install github/gh-copilot
 
 Especially when you run command line tools, always review the execution before accepting it. **Never blindly execute** suggested shell commands (in general).
 
+## 1.3 copilot-instructions & AGENTS.md
+
+GitHub Copilot reads project-level instructions from `.github/copilot-instructions.md`. There is always only one `copilot-instructions.md` per repository and it needs to be located exactly at `.github/`. You can create more specific instructions in `.github/instructions/*.instructions.md` (e.g. a `documentation.instructions.md`). GHCP also interacts with `AGENTS.md` files. You can have multiple of these in your repo. Always the "closest" `AGENTS.md` file is considered, so you can have multiple `AGENTS.md` files (e.g. `frontend/AGENTS.md`, `backend/AGENTS.md`). The files always needs to be specifically named `AGENTS.md`.
+
+What should be considered for all instructions or `AGENTS.md` is 
+1) that what the information provided by them should be relevant to be considered by the agentic AI in every context (because this is what will be happening) and 
+2) to write them verifiable. Try to avoid vague statements like *"write good code"* or *"follow best practices"*. Instead try to stick with rules that can be potentially verified by a continuous integration job, like tests should be executable by `pytest` and concrete paths to files and folders the agent should consider or not touch.
+
+This repo ships with one [`.github/copilot-instructions.md`](https://github.com/jkordick/ghcp-advanced/blob/main/.github/copilot-instructions.md). Feel free to open and read it. Notice it is short, declarative and project-scoped.
+
 --- read until here
-
-## 1.3 Custom instructions/AGENTS.md
-
-Copilot reads project-level instructions from `.github/copilot-instructions.md`. Put your *durable* rules there — language, framework, style, testing expectations, things you would otherwise repeat in every prompt.
-
-This repo ships with one. Open [`.github/copilot-instructions.md`](https://github.com/jkordick/ghcp-advanced/blob/main/.github/copilot-instructions.md) and read it. Notice it is short, declarative and project-scoped — not a wall of text.
-
-**Try it.** Add this line to your own project:
-
-```markdown
-- All new TypeScript code must use ES modules and `node:`-prefixed imports.
-```
-
-Then ask Copilot in Chat: *"create a small file utility that reads a JSON file"*. The output should respect the rule without you mentioning it.
-
-You can also scope instructions with `.github/instructions/*.instructions.md` and a frontmatter `applyTo:` glob — useful in monorepos.
 
 ## 1.4 Prompt files
 
@@ -264,7 +258,7 @@ The spec describes the **what** in the form of user stories. The plan describes 
 You gain three things:
 
 1. **Reviewability.** A precise spec & plan is something a human (or a second AI agent) can review. 800 lines of generated code distributed between multiple files is not.
-2. **Control.** The 3-steps of planning create a "contract" between your intent and the agentic AI. 
+2. **Control.** The 3-steps of planning create a "contract" between your intent and the executing by an agentic AI. 
 3. **A structured way of working & better outcomes.** With the help of divide and conquer, you can get to more complex, multi-file, multi-iteration features that are still managable and maintainable.
 
 <div class="tip" data-title="Important">
@@ -275,17 +269,11 @@ You gain three things:
 
 ## 2.2 Hands-on: build The Rubber Duck Emporium with SDD
 
-You will build a small e-commerce backend for **The Rubber Duck Emporium** — a shop that sells specialty rubber ducks for every possible occasion: Debugging Ducks, Philosopher Ducks, Maritime Ducks, Wellness Ducks, and Limited Editions.
+You will build a small e-commerce applicatiom for **The Rubber Duck Emporium** — a shop that sells specialty rubber ducks for every possible occasion: Debugging Ducks, Philosopher Ducks, Maritime Ducks, Wellness Ducks, and Limited Editions.
 
 The user stories live in the [`user-stories/`](https://github.com/jkordick/ghcp-advanced/tree/main/user-stories) folder of this repo. **Read [`user-stories/README.md`](https://github.com/jkordick/ghcp-advanced/blob/main/user-stories/README.md) first** — it describes the product, personas (Quincy Quacker the customer, Dr. Mallard the curator), shared constraints, and the dependency graph between stories.
 
-There are 8 stories. A realistic ~90-minute run completes the 4 MVP stories (browse, detail, cart, checkout). The other 4 are stretch / homework.
-
-<div class="tip" data-title="Why a silly domain?">
-
-> Ducks force you to actually read the spec. With a familiar domain (a "todo app", a "URL shortener") it is too easy to silently rely on what you already know. With ducks, every ambiguity surfaces — which is the whole point of practicing SDD.
-
-</div>
+There are 9 stories. A realistic ~90-120 minute run completes the full application.
 
 ### 2.2.1 Scaffold
 
@@ -295,20 +283,17 @@ npm init -y
 npm i -D typescript tsx vitest @types/node
 npx tsc --init
 mkdir -p src specs
-# Pull the user stories from this repo into your project:
-curl -sL https://github.com/jkordick/ghcp-advanced/archive/refs/heads/main.tar.gz \
-  | tar -xz --strip-components=1 ghcp-advanced-main/user-stories
 git init && git add -A && git commit -m "scaffold + user stories"
 ```
 
-Add a minimal `.github/copilot-instructions.md`:
+Add a minimal `AGENTS.md` in the `duck-emporium/` folder:
 
 ```markdown
 # Project: duck-emporium
 - Language: TypeScript (ES modules), Node 20+.
 - Use `node:`-prefixed built-ins.
 - Tests live next to source as `*.test.ts`, run with `vitest`.
-- User stories live in `user-stories/`. Specs go in `specs/<story-id>/`.
+- User stories live in `../user-stories/`. Specs go in `specs/<story-id>/`.
 - Never edit `user-stories/**` or `specs/**` without explicit instruction.
 - Follow the workflow in `.github/prompts/sdd-*.prompt.md`.
 - Payments are MOCKED. Never integrate a real payment provider.
@@ -323,13 +308,12 @@ Create `.github/prompts/sdd-spec.prompt.md`:
 mode: agent
 description: Turn a user story into a reviewable spec.
 ---
-Goal: produce `specs/{story-id}/spec.md` from `user-stories/{story-id}.md`.
+Goal: produce `duck-emporium/specs/{story-id}/spec.md` from `user-stories/{story-id}.md`.
 
 Rules:
 - Read the user story file first. Treat it as raw input, not as a spec.
-- Ask clarifying questions ONE at a time. Use the "Open questions" section
-  of the user story as a starting point but go beyond it.
-- Do not write code or any file other than `specs/{story-id}/spec.md`.
+- Ask clarifying questions ONE at a time. Use the "Open questions" section of the user story as a starting point but go beyond it.
+- Do not write code or any file other than `duck-emporium/specs/{story-id}/spec.md`.
 - When you have enough information, write the spec using this outline:
   Problem, Users, Scope (in/out), Functional requirements,
   Non-functional requirements, Acceptance criteria, Open questions.
@@ -346,7 +330,7 @@ Pick story 1 (`browse-catalog`). In Chat (Agent mode):
 /sdd-spec story: browse-catalog
 ```
 
-Answer the clarifying questions. Expect to make a foundational decision here that will affect every later story — e.g., *"is this a JSON API or a server-rendered web app?"*, *"what fields does a `Duck` have?"*. Review `specs/browse-catalog/spec.md`. Iterate until you are happy.
+Answer the clarifying questions. Expect to make a foundational decision here that will affect every later story — e.g., *"is this a JSON API or a server-rendered web app?"*, *"what fields does a `Duck` have?"*. Review `duck-emporium/specs/browse-catalog/spec.md`. Iterate until you are happy.
 
 Then:
 
@@ -358,6 +342,12 @@ Then:
 ```
 
 …and so on. **Commit after every passing task.** When the story is done, move on to story 2 (`duck-detail`), which builds on story 1's foundation.
+
+<div class="tip" data-title="Tip">
+
+> Of course spec driven development can potentially take all user stories at once, but we recommend doing it one by one for the first few times until you get the hang of it. If you want to experience the all-in-one-go experience, check out the spec-kit chapter in this workshop.
+
+</div>
 
 ### 2.2.4 What you should notice
 
@@ -376,90 +366,75 @@ Then:
 
 ## 2.3 SDD in the Copilot CLI
 
-Everything above works in the terminal too. Same prompt files, same instructions — just invoked from `copilot` or driven by `gh copilot`. This is how you bring SDD to:
-
-- repos without an IDE workflow (infra, scripts, data pipelines)
-- CI jobs that generate code from specs on every PR
-- pair sessions over SSH
-
-## 2.4 Anti-patterns to avoid
-
-| Anti-pattern                                       | Fix                                                      |
-| -------------------------------------------------- | -------------------------------------------------------- |
-| "Just one big prompt that builds the whole thing"  | Split into Spec → Plan → Tasks                           |
-| Editing code and spec in the same agent turn       | Two separate prompt files, two separate approvals        |
-| Letting the agent invent acceptance criteria       | You write them; the agent only proposes drafts          |
-| Specs that describe code ("use a Map<string,…>")    | Specs describe **behavior**; plans describe code         |
-| No tests                                           | Each task's "done" = test exists and passes              |
+Everything above works in the GitHub Copilot CLI too. Same prompt files, same instructions — just invoked from `copilot` in your terminal.
 
 ---
 
-# Chapter 3 (optional) — Spec Kit
+# Chapter 3 (optional) — Spec Kit by GitHub
 
-[Spec Kit](https://github.com/github/spec-kit) is GitHub's open-source toolkit that formalizes the loop you just did by hand. It ships a `specify` CLI that scaffolds the `specs/` layout, prompt files and chatmodes for you, and integrates with several AI agents.
+[Spec Kit](https://github.com/github/spec-kit) is an open-source toolkit by the GitHub team formalizes and extends the loop you just did by hand. As it is an open-source project it can not only be used in combination with GitHub Copilot but [many more agentic AIs for coding](https://github.github.io/spec-kit/reference/integrations.html). So if you now want to give it a try with Claude, Cursor or Codex, this is the moment.
 
-<div class="warning" data-title="Enterprise check">
+It ships a `specify` CLI that scaffolds the `specs/` layout, prompt files and chatmodes for you, and integrates with several AI agents.
 
-> Some organizations restrict which CLIs developers can install (`uv`, `uvx`, `npx`, etc.). If `specify` is not allowed in your environment, you have already learned the underlying workflow in Chapter 2 — keep using it.
+<div class="warning" data-title="Enterprise organization check">
+
+> Some organizations restrict which CLIs developers can install (`uv`, `uvx`, `npx`, etc.). If `specify` is not allowed in your environment, you have already learned the underlying workflow in Chapter 2.
 
 </div>
 
-## 3.1 Install
+## 3.1 Install & initialize the project
+
+Follow in installation instructions in the [spec-kit README.md](https://github.com/github/spec-kit#-get-started). 
+
+In the root of the project:
 
 ```bash
-# Using uv (recommended by the project)
-uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
-specify --help
+specify init duck-emporium --integration copilot
+## choose between bash or powershell
+cd duck-emporium
 ```
 
-## 3.2 Initialize a project
+<div class="warning" data-title="Workaround">
 
-```bash
-specify init my-feature --ai copilot
-cd my-feature
-```
+> When you open the duck-emporium folder you will notice that it created multiple folders. Cut and copy them to the root of the project. To make them easy accesible for the agent.
 
-This creates a structured layout with the SDD phases (`/specify`, `/plan`, `/tasks`, `/implement`) pre-wired as slash commands.
+</div>
+
+
+This creates a structured layout with the SDD phases (`/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement` and some additional steps) pre-wired as slash commands.
 
 ## 3.3 Run the same loop, but guided
 
-In Copilot Chat:
+In GitHub Copilot Chat:
 
 ```text
-/specify build a URL shortener CLI...
-/plan
-/tasks
-/implement
+/speckit.specify checkout #user-stories and create a specification out of them
 ```
 
-Compare what Spec Kit generates against the hand-rolled prompts from Chapter 2. You will recognize every step — Spec Kit just removes the boilerplate.
+<div class="tip" data-title="Branching">
 
-## 3.4 When to choose which
+> When spec-kit starts working it creates a dedicated working branch.
 
-| Situation                                                | Use                                |
-| -------------------------------------------------------- | ---------------------------------- |
-| Locked-down enterprise, no extra tools allowed           | Chapter 2 (hand-rolled prompts)    |
-| Greenfield repo, you control tooling                      | Spec Kit                           |
-| Teaching SDD to a team for the first time                 | Chapter 2 first, Spec Kit later    |
-| Multi-agent project (Copilot + others)                    | Spec Kit (it abstracts the agent)  |
+</div>
 
----
+Compare what spec-kit works and what it generates against the hand-rolled prompts from Chapter 2. You will recognize every step — spec-kit just removes the boilerplate.
 
 # Wrap-up
 
-You have learned:
+You (hopefully) have learned:
 
-- The full surface area of GitHub Copilot — IDE, CLI, instructions, prompts, chatmodes, MCP.
-- A repeatable, reviewable, agent-friendly development loop: **Idea → Spec → Plan → Tasks → Code → Verify.**
-- How to apply that loop with raw Copilot, and (optionally) with Spec Kit.
+- The full surface area of GitHub Copilot: IDE, CLI, instructions, prompts, custom agents, MCP.
+- A repeatable, reviewable, agent-friendly development loop: **Spec → Plan → Tasks → Implement.**
+- How to apply that loop with a raw agent, and (optionally) with spec-kit as a dedicated tool.
 
 ## Where to go next
 
 - [GitHub Copilot docs](https://docs.github.com/en/copilot)
 - [Awesome Copilot](https://github.com/github/awesome-copilot) — community prompts, chatmodes, instructions
-- [Spec Kit](https://github.com/github/spec-kit)
+- [spec-kit](https://github.com/github/spec-kit)
 - [Model Context Protocol](https://modelcontextprotocol.io)
-- The original [GH Copilot HoL](https://moaw.dev/workshop/gh:Philess/GHCopilotHoL/main/docs/) — broader product tour this workshop builds on
+- The original [GH Copilot HoL](https://moaw.dev/workshop/gh:Philess/GHCopilotHoL/main/docs/) — broader foundational GitHub Copilot product tour this workshop builds on
+- [squad](https://github.com/bradygaster/squad) - human-directed AI development team through GitHub Copilot
 
 <div class="tip" data-title="One thing to try tomorrow">
 
