@@ -584,14 +584,14 @@ This is why long, unfocused agent sessions degrade in quality. Just because the 
 
 > Read more about context rot: https://www.producttalk.org/context-rot/
 
-# Context engineering provided by the GitHub Copilot & VS Code team
+## 6.2 Context engineering provided by the GitHub Copilot & VS Code team
 
 The GitHub Copilot harness actively works to keep context lean. **Prompt caching** reuses model state for the repeated prompt prefix (system instructions, tool definitions, conversation history) instead of reprocessing it on every turn, because cached tokens are up to 10× cheaper. **Tool search** defers full tool schemas out of context until the model actually needs them. Only lightweight names and descriptions are loaded upfront. Together these cut ~10–18% of total tokens per session. Read the technical deep dive: [Improving token efficiency for GitHub Copilot in VS Code](https://code.visualstudio.com/blogs/2026/06/17/improving-token-efficiency-in-github-copilot).
 
 Not every task needs the strongest frontier model. **Auto mode** uses a routing model called HyDRA to match each task to the best-fit model based on reasoning depth, code complexity, and tool orchestration needs. It routes at natural cache boundaries (first turn, after compaction) to avoid breaking prompt cache. In evaluations, Auto matched the quality of always-using-the-strongest-model while saving up to 72% in cost. Read more: [Getting more from each token: How Copilot improves context handling and model routing](https://github.blog/ai-and-ml/github-copilot/getting-more-from-each-token-how-copilot-improves-context-handling-and-model-routing/).
 
 
-## 6.2 Apply project level context engineering controls
+## 6.3 Apply project level context engineering controls
 
 Chapter 1 covered each of these controls individually. Now we apply them as **context engineering** tools. For each control: *when* it loads, *what it costs*, *what* it is, *how* to use it, and a short exercise on the duck-emporium project.
 
@@ -602,7 +602,7 @@ git checkout context-engineering-start
 cd duck-emporium
 ```
 
-## 6.2.1 System prompt & tools
+## 6.3.1 System prompt & tools
 **Loaded when:** every call (automatic);  
 **Context cost:** fixed overhead;  
 **Use for:** you do not control this directly, used implicitly
@@ -611,7 +611,7 @@ The base prompt and tool definitions injected by the harness before your convers
 
 You cannot edit it, but you can inspect it. [Enable debug mode in VS Code to see logs.](https://docs.github.com/en/enterprise-cloud@latest/copilot/how-tos/troubleshoot-copilot/view-logs)
 
-## 6.2.2 `copilot-instructions.md` / `AGENTS.md`
+## 6.3.2 `copilot-instructions.md` / `AGENTS.md`
 **Loaded when:** every call (always-on);  
 **Context cost:** proportional to file size;  
 **Use for:** non-negotiable project rules that apply _every_ interaction. 
@@ -629,9 +629,9 @@ Persistent project-level instructions. `.github/copilot-instructions.md` (one pe
 
 Open the GitHub Copilot chat window and type `/create-instructions`. (Or in the GitHub Copilot CLI just type: `Create me a copilot-instructions.md file for this project.`). When the agent is done, review the generated instructions. Verify its quality with the help of the rules of thumb above. 
 
-If you want to have an exmaple how a decent `copilot-instructions.md` could look like: in the project root of this repo you can find a file for the whole workshop repository.
+If you want to have an example of how a decent `copilot-instructions.md` could look like: in the project root of this repo you can find a file for the whole workshop repository.
 
-## 6.2.3 Scoped instructions (`.instructions.md`)
+## 6.3.3 Scoped instructions (`.instructions.md`)
 **Loaded when:** agent touches files matching the `applyTo` glob;  
 **Context cost:** on-demand (zero cost when not triggered);  
 **Use for:** file-type-specific rules that would bloat always-on instructions (e.g. `documentation.instructions.md`). 
@@ -668,7 +668,7 @@ applyTo: "**/tests/**"
 
 Ask GitHub Copilot: *"add edge-case tests for the quiz endpoint"*. The scoped instructions should load automatically for `**/tests/**` files.
 
-## 6.2.4 Custom agents (`.agent.md`)
+## 6.3.4 Custom agents (`.agent.md`)
 **Loaded when:** explicitly invoked;  
 **Context cost:** replaces default agent behavior for that session;  
 **Use for:** specialized workflows with restricted tools or persona. 
@@ -691,7 +691,7 @@ You are a testing specialist focused on improving code quality through comprehen
 files — avoid modifying production code unless specifically requested.
 ```
 
-## 6.2.5 Skills/`SKILL.md`
+## 6.3.5 Skills/`SKILL.md`
 **Loaded when:** agentic harness detects a matching defined task (description always loaded, full doc on match); e.g. a svg to png conversion skill;  
 **Context cost:** on-demand (only short description in always-on budget);  
 **Use for:** packaged multi-step capabilities the agent can invoke autonomously 
@@ -722,7 +722,7 @@ Ask the agent to make a risky change and verify it works. The skill will be sele
 
 -- verified until here (June 22nd)
 
-## 6.2.6 Prompt files (`.prompt.md`)
+## 6.3.6 Prompt files (`.prompt.md`)
 Loaded when: you invoke them (`/prompt-name`)
 Context cost: one-shot (only for that invocation)
 Use for: reusable, parameterized workflows triggered on demand
@@ -731,7 +731,7 @@ Use for: reusable, parameterized workflows triggered on demand
 
 **How:** Use for repeatable tasks where the *approach* is fixed and the *input* varies (e.g., `/sdd-spec` with a story ID). Unlike skills, they are user-initiated, not auto-detected.
 
-## 6.2.7 MCP tools
+## 6.3.7 MCP tools
 Loaded when: tool descriptions always loaded; results injected on use
 Context cost: descriptions are fixed overhead; results are variable per call
 Use for: connecting the agent to external data and actions (issue trackers, databases, APIs)
@@ -740,7 +740,12 @@ Use for: connecting the agent to external data and actions (issue trackers, data
 
 **How:** Keep the number of connected MCP servers small — each server's tool descriptions consume always-on context. Only connect what the current task needs.
 
-## 6.2.8 Subagents
+<div class="tip" data-title="About writing custom MCP servers">
+
+> A word about writing "good" MCP servers: design them around the use case and the agent's needs. Try to avoid translating an API 1:1 into tools. If you want to learn more, listen to [this podcast with Den Delimarsky (now Anthropic, former Microsoftie 🥲), the lead maintainer of Model Context Protocol.](https://www.youtube.com/watch?v=q0SqUyGjesI&list=PLjULwdJUtFdi5CGz6pKBJvYPjZ8NOxoWQ&index=3)
+</div>
+
+## 6.3.8 Subagents
 Loaded when: spawned by the main agent during execution
 Context cost: separate context window (does not pollute the main session)
 Use for: offloading research or exploration to keep the main session lean
@@ -749,7 +754,7 @@ Use for: offloading research or exploration to keep the main session lean
 
 **How:** Useful for large codebases where searching would flood the main context. The subagent reads many files, returns a short summary.
 
-## 6.2.9 Copilot Memory
+## 6.3.9 Copilot Memory
 Loaded when: every call (automatic, cross-surface)
 Context cost: small per memory entry
 Use for: persistent learnings the agent should remember across sessions
@@ -758,7 +763,7 @@ Use for: persistent learnings the agent should remember across sessions
 
 **How:** Let the agent learn from corrections. If you repeatedly fix the same mistake, tell it to remember the rule.
 
-## 6.2.10 Summary
+## 6.3.10 Summary
 
 | Control | Loaded when | Context cost | Use for |
 |---------|-------------|--------------|---------|
