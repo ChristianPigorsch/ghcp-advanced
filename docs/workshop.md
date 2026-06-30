@@ -27,6 +27,7 @@ Welcome! This workshop has the following parts:
 4. (soon) **How to use [squad](https://github.com/bradygaster/squad)** open-source framework for orchestrating multi-agent development teams.
 5. (soon) **SDD for app modernization**: a dedicated chapter on how to use SDD to modernize legacy apps.
 6. **Context Engineering**: Theory foundations (LLMs, agents, context rot) followed by hands-on exercises adding instructions, scoped rules, and skills to a pre-built project.
+7. **The GitHub Copilot SDK**: Embed Copilot directly into your own apps — open sessions, stream responses, and let Copilot call custom tools you define in TypeScript/Node.
 
 <div class="info" data-title="Who is this for?">
 
@@ -843,7 +844,413 @@ For teams scaling context engineering across repositories:
 
 ---
 
-# Chapter 8 (coming soon) - GitHub Copilot SDK
+# Chapter 8 — The GitHub Copilot SDK
+
+So far you have *used* Copilot — in the IDE, in Chat, in the CLI. In this chapter you **embed** Copilot into your own code. The [GitHub Copilot SDK](https://www.npmjs.com/package/@github/copilot-sdk) lets you talk to Copilot programmatically: open a session, send a prompt, stream the response, and — most interestingly — define **tools** in your own codebase that Copilot decides when to call.
+
+<div class="info" data-title="SDK vs. CLI">
+
+> The CLI from Chapter 1 is for **terminal workflows**. The SDK is for **embedding Copilot inside your apps, scripts, services and pipelines**. Under the hood the SDK starts and manages a Copilot CLI process for you and speaks JSON-RPC to it — so everything you learned about authentication, models and MCP in earlier chapters still applies.
+
+</div>
+
+By the end of this chapter you can:
+
+- Install and configure the SDK in a TypeScript/Node project.
+- Send messages and receive responses programmatically.
+- Stream responses token by token for interactive UX.
+- Define custom tools that Copilot can call autonomously.
+- Build a small interactive assistant that uses your tools.
+
+## 8.1 Mental model: the power grid
+
+The Copilot CLI is like plugging a lamp into a wall outlet — it works great, you get light immediately. The SDK is like connecting straight to the **power grid**:
+
+- Build your own appliances (custom apps and assistants).
+- Control how the power flows (streaming, tool wiring, system messages).
+- Connect complex systems (multi-tool assistants, automation, pipelines).
+
+The CLI gives you a flashlight; the SDK lets you build a power plant.
+
+## 8.2 How the SDK fits together
+
+| Component   | What it does                                                  |
+| ----------- | ------------------------------------------------------------- |
+| **Client**  | Starts and manages the connection to the Copilot CLI process. |
+| **Session** | A conversation context — like a single Chat thread.           |
+| **Messages**| Prompts you send and responses you get back.                  |
+| **Streaming** | Receive response chunks in real time, word by word.         |
+| **Tools**   | Functions you define in your code that Copilot can invoke.    |
+
+```text
+Your app  →  Copilot SDK  →  Copilot CLI (managed for you)  →  GitHub Copilot
+   ↑                                                                  ↓
+   ←──────────── responses / tool calls / streaming ←─────────────────┘
+```
+
+The flow is always the same: create a client, open a session, send a message, react to events.
+
+<div class="info" data-title="Other languages">
+
+> This workshop's examples are TypeScript first, in line with the rest of the labs. The same SDK is available for **Python, Go, Rust, .NET and Java** — the API shape (`Client` → `Session` → tools/events) is identical, only the syntax differs. Pick whichever language matches your stack.
+
+</div>
+
+## 8.3 Prerequisites
+
+Before starting, double-check:
+
+- **GitHub Copilot CLI** installed and authenticated (Chapter 1.2).
+- **Node.js 20+** with npm.
+
+```bash
+copilot --version
+node --version    # 20.x or higher
+```
+
+## 8.4 Hands-on: a weather assistant in TypeScript
+
+You will build a small assistant in five steps: bare prompt → streaming → custom tool → REPL. Each step is independently runnable.
+
+### 8.4.1 Scaffold
+
+```bash
+mkdir copilot-sdk-lab && cd copilot-sdk-lab
+npm init -y --init-type module
+npm install @github/copilot-sdk tsx
+```
+
+<div class="info" data-title="What is tsx?">
+
+> `tsx` is a TypeScript runner that executes `.ts` files directly — no separate compile step. Think of it as a faster `ts-node`. You will invoke it via `npx tsx <file>.ts`.
+
+</div>
+
+### 8.4.2 Your first programmatic prompt
+
+Create `index.ts`:
+
+```ts
+import { CopilotClient } from "@github/copilot-sdk";
+
+const client = new CopilotClient();
+const session = await client.createSession({ model: "auto" });
+
+const response = await session.sendAndWait({ prompt: "What is 2 + 2?" });
+console.log(response?.data.content);
+
+await client.stop();
+process.exit(0);
+```
+
+Run it:
+
+```bash
+npx tsx index.ts
+```
+
+Five lines of real code and Copilot is answering you from inside a Node process. The SDK started the CLI behind the scenes, reused your existing auth, opened a session, sent the prompt and shut everything down cleanly.
+
+### 8.4.3 Stream the response
+
+Waiting for the whole response before printing anything feels sluggish. Listen for `assistant.message_delta` events and write each chunk as it arrives.
+
+Replace `index.ts`:
+
+```ts
+import { CopilotClient } from "@github/copilot-sdk";
+
+const client = new CopilotClient();
+const session = await client.createSession({
+  model: "auto",
+  streaming: true,
+});
+
+session.on("assistant.message_delta", (event) => {
+  process.stdout.write(event.data.deltaContent);
+});
+
+session.on("session.idle", () => {
+  process.stdout.write("\n");
+});
+
+await session.sendAndWait({
+  prompt: "Explain what the GitHub Copilot SDK does in two sentences.",
+});
+
+await client.stop();
+process.exit(0);
+```
+
+Run it again — the answer now appears word by word, like a real chat.
+
+### 8.4.4 Define a custom tool
+
+This is where the SDK earns its keep. You can register **tools** — typed functions in your own code — and Copilot will decide when to call them based on the user's prompt. No prompt engineering required; the tool's `description` is enough.
+
+Replace `index.ts`:
+
+```ts
+import { CopilotClient, defineTool, approveAll } from "@github/copilot-sdk";
+
+const getWeather = defineTool("get_weather", {
+  description: "Get the current weather for a city",
+  parameters: {
+    type: "object",
+    properties: {
+      city: { type: "string", description: "The city name" },
+    },
+    required: ["city"],
+  },
+  handler: async ({ city }: { city: string }) => {
+    // In a real app this is where you'd call a weather API.
+    const conditions = ["sunny", "cloudy", "rainy", "partly cloudy"];
+    const temp = Math.floor(Math.random() * 15) + 15;
+    const condition = conditions[Math.floor(Math.random() * conditions.length)];
+    return { city, temperature: `${temp}°C`, condition };
+  },
+});
+
+const client = new CopilotClient();
+const session = await client.createSession({
+  model: "auto",
+  streaming: true,
+  tools: [getWeather],
+  onPermissionRequest: approveAll,
+});
+
+session.on("assistant.message_delta", (event) => {
+  process.stdout.write(event.data.deltaContent);
+});
+session.on("session.idle", () => process.stdout.write("\n"));
+
+await session.sendAndWait({
+  prompt: "What's the weather like in Munich and Bonn?",
+});
+
+await client.stop();
+process.exit(0);
+```
+
+Run it. Notice what just happened: Copilot read your prompt, decided it needed weather data for two cities, called `get_weather` **twice** (once per city), and wove the results into a natural-language reply. You wrote zero prompt-engineering glue.
+
+<div class="warning" data-title="approveAll is a workshop convenience">
+
+> `approveAll` accepts every tool invocation without confirmation. That's fine for a lab. In production code, implement `onPermissionRequest` properly so users (or policy) can approve, deny or rate-limit tool calls.
+
+</div>
+
+### 8.4.5 Build an interactive REPL
+
+Wrap the same setup in a chat loop. Create `weather-assistant.ts`:
+
+```ts
+import { CopilotClient, defineTool, approveAll } from "@github/copilot-sdk";
+import * as readline from "node:readline";
+
+const getWeather = defineTool("get_weather", {
+  description: "Get the current weather for a city",
+  parameters: {
+    type: "object",
+    properties: {
+      city: { type: "string", description: "The city name" },
+    },
+    required: ["city"],
+  },
+  handler: async ({ city }: { city: string }) => {
+    const conditions = ["sunny", "cloudy", "rainy", "partly cloudy"];
+    const temp = Math.floor(Math.random() * 15) + 15;
+    const condition = conditions[Math.floor(Math.random() * conditions.length)];
+    return { city, temperature: `${temp}°C`, condition };
+  },
+});
+
+const client = new CopilotClient();
+const session = await client.createSession({
+  model: "auto",
+  streaming: true,
+  tools: [getWeather],
+  onPermissionRequest: approveAll,
+});
+
+session.on("assistant.message_delta", (event) => {
+  process.stdout.write(event.data.deltaContent);
+});
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+console.log("🌤️  Weather Assistant (type 'exit' to quit)");
+console.log("   Try: 'What's the weather in Berlin?'\n");
+
+const prompt = () => {
+  rl.question("You: ", async (input) => {
+    if (input.toLowerCase() === "exit") {
+      await client.stop();
+      rl.close();
+      return;
+    }
+    process.stdout.write("Assistant: ");
+    await session.sendAndWait({ prompt: input });
+    console.log("\n");
+    prompt();
+  });
+};
+
+prompt();
+```
+
+Run it:
+
+```bash
+npx tsx weather-assistant.ts
+```
+
+Example session:
+
+```text
+🌤️  Weather Assistant (type 'exit' to quit)
+   Try: 'What's the weather in Berlin?'
+
+You: What's the weather in Seattle?
+Assistant: It's currently 22°C and cloudy in Seattle.
+
+You: How about Munich and London?
+Assistant: Sure — Munich is 27°C and sunny, London is 19°C and rainy.
+
+You: exit
+```
+
+## 8.5 How tool calling actually works
+
+When you register a tool, you tell Copilot three things:
+
+1. **What it does** — the `description`.
+2. **What it needs** — the JSON-schema `parameters`.
+3. **What to run** — the `handler`.
+
+The runtime flow:
+
+```text
+User: "What's the weather in Munich?"
+   │
+   ▼
+Copilot matches the question to the tool's description
+   │
+   ▼
+Copilot emits a tool call: get_weather({ city: "Munich" })
+   │
+   ▼
+SDK runs YOUR handler in your process
+   │
+   ▼
+Result returned: { city: "Munich", temperature: "22°C", condition: "sunny" }
+   │
+   ▼
+Copilot composes the final natural-language answer
+```
+
+<div class="tip" data-title="Key insight">
+
+> You don't prompt-engineer when Copilot should use your tool. You **describe** what it does, clearly, and Copilot figures out the rest. Treat tool descriptions like API documentation: be precise about inputs, outputs and side effects.
+
+</div>
+
+## 8.6 Going further
+
+Once the basics click, these are the most useful next features.
+
+### 8.6.1 Plug in MCP servers
+
+Give your app the same MCP power as the IDE and CLI:
+
+```ts
+const session = await client.createSession({
+  mcpServers: {
+    github: {
+      type: "http",
+      url: "https://api.githubcopilot.com/mcp/",
+    },
+  },
+});
+```
+
+### 8.6.2 Define custom agents
+
+Bake specialized personas into the session — exactly the same shape as Chapter 1.5:
+
+```ts
+const session = await client.createSession({
+  customAgents: [
+    {
+      name: "pr-reviewer",
+      displayName: "PR Reviewer",
+      description: "Reviews pull requests for best practices",
+      prompt:
+        "You are an expert code reviewer. Focus on security, performance, and maintainability.",
+    },
+  ],
+});
+```
+
+### 8.6.3 Set a system message
+
+Control tone, scope and guardrails for the whole session:
+
+```ts
+const session = await client.createSession({
+  systemMessage: {
+    content:
+      "You are an assistant for our engineering team. Be concise. Never invent file paths.",
+  },
+});
+```
+
+### 8.6.4 Connect to a long-running CLI
+
+For debugging, multi-process setups or sharing a session across consumers, run the CLI headless and connect to it:
+
+```bash
+copilot --headless --port 4321
+```
+
+```ts
+const client = new CopilotClient({ cliUrl: "localhost:4321" });
+```
+
+## 8.7 Do this now — challenges
+
+Pick one. They build directly on the lab above.
+
+1. **Add a second tool.** Define `get_time` that returns the current time for a timezone. Ask the assistant *"What's the weather and time in Tokyo?"* — confirm Copilot calls **both** tools in one turn.
+2. **Tighten permissions.** Replace `approveAll` with an `onPermissionRequest` handler that logs each tool call and prompts on stdin before approving. Notice how the agent waits politely.
+3. **Build a Duck Emporium assistant.** Reuse the user stories and data model from Chapter 2. Define two tools: `search_ducks(query)` reads your seed data; `add_duck(name, theme, price_cents)` appends a new entry. Wire them into a REPL and chat with your shop's inventory.
+
+<div class="tip" data-title="Combine with SDD">
+
+> Treat the assistant itself as a feature. Write a `user-stories/copilot-sdk-assistant.md`, run it through `/sdd-spec → /sdd-plan → /sdd-tasks → /sdd-implement` from Chapter 2. The SDK lab becomes a perfect end-to-end test of your SDD workflow.
+
+</div>
+
+## 8.8 Common mistakes
+
+| Mistake                              | Symptom                                       | Fix                                       |
+| ------------------------------------ | --------------------------------------------- | ----------------------------------------- |
+| Forgetting `await client.stop()`     | CLI process lingers after the script ends.    | Always stop the client before exiting.    |
+| Not setting `streaming: true`        | `assistant.message_delta` never fires.        | Enable streaming in `createSession`.      |
+| Tool handler returns a raw string    | Copilot gets confused or errors out.          | Return a plain object describing results. |
+| Missing `process.exit(0)`            | Script hangs after the last response.         | Exit explicitly at the end of the script. |
+| Logging tool calls only on success   | Failures vanish silently into the session.    | Log inside the handler, before returning. |
+
+## 8.9 Key takeaways
+
+1. **The SDK embeds Copilot in your apps.** Go beyond the terminal — wire intelligence into your own tools, services and automations.
+2. **Five lines to start.** Create a client, open a session, send a message. That's the minimum viable program.
+3. **Streaming makes it feel alive.** Subscribe to `assistant.message_delta` and write as chunks arrive.
+4. **Tools are the superpower.** Describe what your code can do; let Copilot decide when to call it.
+5. **Same patterns, any language.** TypeScript, Python, Go, Rust, .NET, Java — same shape, same mental model.
 
 ---
 
