@@ -1,0 +1,1 @@
+cmd /c "cd /d d:\User\Christian\Language\Test_GHCP\ghcp-advanced\fibonacci-demo && npm run build && npm start 10"

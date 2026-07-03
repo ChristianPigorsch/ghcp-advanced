@@ -1,0 +1,12 @@
+{
+  "name": "rubber-duck-emporium",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test user-stories/**/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "typescript": "^6.0.3"
+  }
+}

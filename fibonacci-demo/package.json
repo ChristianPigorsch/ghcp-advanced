@@ -1,0 +1,19 @@
+{
+  "name": "fibonacci-demo",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A demo project for calculating Fibonacci numbers.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {},
+  "author": "Your Name",
+  "license": "MIT"
+}
