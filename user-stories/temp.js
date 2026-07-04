@@ -1,7 +1,13 @@
 // returns the nth Fibonacci number
-export function fib(n) {
-    if (n <= 1) {
+const BASE_THRESHOLD = 1;
+
+function fibRecursive(n) {
+    if (n <= BASE_THRESHOLD) {
         return n;
     }
-    return fib(n - 1) + fib(n - 2);
+    return fibRecursive(n - 1) + fibRecursive(n - 2);
+}
+
+export function fib(n) {
+    return fibRecursive(n);
 }
