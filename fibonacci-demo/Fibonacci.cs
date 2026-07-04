@@ -14,6 +14,9 @@ public class FibonacciCalculator
 
     public static int Fib(int n)
     {
+       // Validate input
+        if (n < 0)
+            throw new ArgumentException("n must be non-negative", nameof(n));
         return FibRecursive(n);
     }
 }
