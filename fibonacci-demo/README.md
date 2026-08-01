@@ -22,13 +22,20 @@ npm install
 
 ## Usage
 
-You can run the application using the following command:
+Build the project and run with an argument, or run interactively:
 
 ```bash
+# install deps once
+npm install
+# build to JavaScript
+npm run build
+# run with argument (non-interactive)
+npm start -- 10
+# or run and enter value interactively
 npm start
 ```
 
-This will execute the `index.ts` file, which handles user input and output for calculating Fibonacci numbers.
+`npm start` runs the compiled `dist/index.js` which handles user input and output for calculating Fibonacci numbers.
 
 ## Examples
 
