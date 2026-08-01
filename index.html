@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Album Store - Cart Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #333;
+        }
+
+        .cart-button {
+            position: relative;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 32px;
+            transition: transform 0.2s;
+        }
+
+        .cart-button:hover {
+            transform: scale(1.1);
+        }
+
+        .cart-count {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            border: 2px solid white;
+        }
+
+        /* Main Content */
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+        }
+
+        /* Album List */
+        .album-list-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .album-list-container h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .albums-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .album-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .album-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .album-card h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .album-card .year {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .album-card .songwriter {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .add-to-cart-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .add-to-cart-btn:hover {
+            opacity: 0.9;
+        }
+
+        .add-to-cart-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Cart Sidebar */
+        .cart-sidebar {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .cart-sidebar.hidden {
+            display: none;
+        }
+
+        .cart-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .cart-items {
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cart-empty {
+            color: #999;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .cart-item {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .cart-item-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .cart-item-details {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .remove-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            width: 100%;
+            transition: background 0.2s;
+        }
+
+        .remove-btn:hover {
+            background: #ff3838;
+        }
+
+        .cart-total {
+            padding: 20px;
+            border-top: 2px solid #e9ecef;
+            background: #f8f9fa;
+            border-radius: 0 0 8px 8px;
+            text-align: right;
+        }
+
+        .cart-total-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .cart-total-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .modal-header h2 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-body h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .modal-body p {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .modal-body .cart-item {
+            border: 1px solid #e9ecef;
+            background: #fff;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            .cart-sidebar {
+                position: static;
+                margin-top: 30px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .albums-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2ed573;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease-out;
+            z-index: 2000;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>🎵 Album Store</h1>
+            <button class="cart-button" id="cartButton" aria-label="Open shopping cart">
+                🛒
+                <span class="cart-count" id="cartCount">0</span>
+            </button>
+        </header>
+
+        <div class="content">
+            <div class="album-list-container">
+                <h2>Browse Albums</h2>
+                <div class="albums-grid" id="albumsGrid">
+                    <!-- Albums will be populated here -->
+                </div>
+            </div>
+
+            <div class="cart-sidebar" id="cartSidebar">
+                <div class="cart-header">Your Cart</div>
+                <div class="cart-items" id="cartItems">
+                    <div class="cart-empty">Cart is empty</div>
+                </div>
+                <div class="cart-total">
+                    <div class="cart-total-label">Total Albums</div>
+                    <div class="cart-total-value" id="cartTotal">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div class="modal" id="cartModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Shopping Cart Details</h2>
+                <button class="modal-close" id="cartModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="cartModalItems">
+                    <!-- Cart items will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cartModalClose2">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample album data
+        const albums = [
+            { id: 1, title: 'Imagine', year: 1971, songwriter: 'John Lennon' },
+            { id: 2, title: 'Hotel California', year: 1976, songwriter: 'Don Felder / Don Henley / Glenn Frey' },
+            { id: 3, title: 'Like a Rolling Stone', year: 1965, songwriter: 'Bob Dylan' },
+            { id: 4, title: 'Purple Rain', year: 1984, songwriter: 'Prince' },
+            { id: 5, title: 'Bohemian Rhapsody', year: 1975, songwriter: 'Freddie Mercury' },
+            { id: 6, title: 'Smells Like Teen Spirit', year: 1991, songwriter: 'Kurt Cobain / Krist Novoselic / Dave Grohl' },
+            { id: 7, title: 'Billie Jean', year: 1982, songwriter: 'Michael Jackson' },
+            { id: 8, title: 'Stairway to Heaven', year: 1971, songwriter: 'Jimmy Page / Robert Plant' },
+            { id: 9, title: 'What a Wonderful World', year: 1967, songwriter: 'Bob Thiele / George David Weiss' },
+            { id: 10, title: 'Respect', year: 1967, songwriter: 'Otis Redding' }
+        ];
+
+        // Cart state
+        let cart = [];
+
+        // DOM Elements
+        const albumsGrid = document.getElementById('albumsGrid');
+        const cartButton = document.getElementById('cartButton');
+        const cartCount = document.getElementById('cartCount');
+        const cartSidebar = document.getElementById('cartSidebar');
+        const cartItems = document.getElementById('cartItems');
+        const cartTotal = document.getElementById('cartTotal');
+        const cartModal = document.getElementById('cartModal');
+        const cartModalClose = document.getElementById('cartModalClose');
+        const cartModalClose2 = document.getElementById('cartModalClose2');
+        const cartModalItems = document.getElementById('cartModalItems');
+
+        // Initialize app
+        function init() {
+            renderAlbums();
+            updateCart();
+        }
+
+        // Render albums grid
+        function renderAlbums() {
+            albumsGrid.innerHTML = albums.map(album => `
+                <div class="album-card">
+                    <h3>${album.title}</h3>
+                    <div class="year">${album.year}</div>
+                    <div class="songwriter">${album.songwriter}</div>
+                    <button class="add-to-cart-btn" data-album-id="${album.id}">Add to Cart</button>
+                </div>
+            `).join('');
+
+            // Attach event listeners to add to cart buttons
+            document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const albumId = parseInt(e.target.dataset.albumId);
+                    addToCart(albumId);
+                });
+            });
+        }
+
+        // Add album to cart
+        function addToCart(albumId) {
+            const album = albums.find(a => a.id === albumId);
+            if (album) {
+                cart.push(album);
+                updateCart();
+                showToast(`Added "${album.title}" to cart`);
+            }
+        }
+
+        // Remove album from cart
+        function removeFromCart(index) {
+            const album = cart[index];
+            cart.splice(index, 1);
+            updateCart();
+            showToast(`Removed "${album.title}" from cart`);
+        }
+
+        // Update cart display
+        function updateCart() {
+            // Update count
+            cartCount.textContent = cart.length;
+
+            // Update sidebar
+            if (cart.length === 0) {
+                cartItems.innerHTML = '<div class="cart-empty">Cart is empty</div>';
+            } else {
+                cartItems.innerHTML = cart.map((album, index) => `
+                    <div class="cart-item">
+                        <div class="cart-item-title">${album.title}</div>
+                        <div class="cart-item-details">${album.year} • ${album.songwriter}</div>
+                        <button class="remove-btn" data-cart-index="${index}">Remove</button>
+                    </div>
+                `).join('');
+
+                // Attach remove listeners
+                document.querySelectorAll('.remove-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = parseInt(e.target.dataset.cartIndex);
+                        removeFromCart(index);
+                    });
+                });
+            }
+
+            // Update total
+            cartTotal.textContent = cart.length;
+
+            // Update modal
+            if (cart.length === 0) {
+                cartModalItems.innerHTML = '<p class="cart-empty">Your cart is empty. Browse and add albums to get started!</p>';
+            } else {
+                cartModalItems.innerHTML = '<h3>Items in Your Cart</h3>' + 
+                    cart.map((album, index) => `
+                        <div class="cart-item">
+                            <div class="cart-item-title">${album.title}</div>
+                            <div class="cart-item-details">${album.year} • ${album.songwriter}</div>
+                            <button class="remove-btn" data-modal-cart-index="${index}">Remove</button>
+                        </div>
+                    `).join('');
+
+                // Attach modal remove listeners
+                document.querySelectorAll('[data-modal-cart-index]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = parseInt(e.target.dataset.modalCartIndex);
+                        removeFromCart(index);
+                    });
+                });
+            }
+        }
+
+        // Show toast notification
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Cart button click
+        cartButton.addEventListener('click', () => {
+            cartModal.classList.add('show');
+        });
+
+        // Modal close buttons
+        cartModalClose.addEventListener('click', () => {
+            cartModal.classList.remove('show');
+        });
+
+        cartModalClose2.addEventListener('click', () => {
+            cartModal.classList.remove('show');
+        });
+
+        // Close modal when clicking outside
+        cartModal.addEventListener('click', (e) => {
+            if (e.target === cartModal) {
+                cartModal.classList.remove('show');
+            }
+        });
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
